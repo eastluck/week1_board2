@@ -10,6 +10,7 @@ export default function Home() {
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
   const [author, setAuthor] = useState('');
+  const [password, setPassword] = useState('');
 
   useEffect(() => {
     fetchPosts();
@@ -18,7 +19,16 @@ export default function Home() {
   const fetchPosts = async () => {
     const res = await fetch('/api/posts');
     const data = await res.json();
-    setPosts(data);
+    // 원글만 표시 (parentId가 없는 글)
+    const originalPosts = data.filter((post: Post) => !post.parentId);
+
+    // 각 원글의 답변 개수 계산
+    const postsWithReplyCount = originalPosts.map((post: Post) => ({
+      ...post,
+      replyCount: data.filter((p: Post) => p.parentId === post.id).length,
+    }));
+
+    setPosts(postsWithReplyCount);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -27,12 +37,13 @@ export default function Home() {
     await fetch('/api/posts', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ title, content, author }),
+      body: JSON.stringify({ title, content, author, password }),
     });
 
     setTitle('');
     setContent('');
     setAuthor('');
+    setPassword('');
     setShowForm(false);
     fetchPosts();
   };
@@ -82,6 +93,17 @@ export default function Home() {
                 placeholder="익명"
               />
             </div>
+            <div className="mb-4">
+              <label className="block text-sm font-medium mb-2">비밀번호</label>
+              <input
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="w-full px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder="글 수정/삭제 시 필요합니다"
+                required
+              />
+            </div>
             <button
               type="submit"
               className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600"
@@ -93,10 +115,17 @@ export default function Home() {
       )}
 
       <div className="space-y-4">
-        {posts.map((post) => (
+        {posts.map((post: any) => (
           <Link key={post.id} href={`/posts/${post.id}`}>
             <div className="bg-white rounded-lg shadow p-6 hover:shadow-md transition-shadow cursor-pointer">
-              <h3 className="text-lg font-semibold mb-2">{post.title}</h3>
+              <div className="flex justify-between items-start mb-2">
+                <h3 className="text-lg font-semibold flex-1">{post.title}</h3>
+                {post.replyCount > 0 && (
+                  <span className="ml-2 px-2 py-1 bg-blue-500 text-white text-xs rounded-full">
+                    답변 {post.replyCount}
+                  </span>
+                )}
+              </div>
               <p className="text-gray-600 mb-2 line-clamp-2">{post.content}</p>
               <div className="flex justify-between text-sm text-gray-500">
                 <span>작성자: {post.author}</span>

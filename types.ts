@@ -4,6 +4,8 @@ export interface Post {
   content: string;
   author: string;
   createdAt: string;
+  password?: string; // 해싱된 비밀번호 (선택적)
+  parentId?: number; // 답변글인 경우 원글의 ID
 }
 
 export interface Comment {

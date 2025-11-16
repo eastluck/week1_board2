@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { comments } from '@/lib/data';
+import { comments, saveComments } from '@/lib/data';
 
 export async function PUT(
   request: NextRequest,
@@ -16,6 +16,7 @@ export async function PUT(
     ...comments[commentIndex],
     content: body.content,
   };
+  saveComments(comments); // 파일에 저장
 
   return NextResponse.json(comments[commentIndex]);
 }
@@ -31,5 +32,6 @@ export async function DELETE(
   }
 
   comments.splice(commentIndex, 1);
+  saveComments(comments); // 파일에 저장
   return NextResponse.json({ message: 'Comment deleted' }, { status: 200 });
 }

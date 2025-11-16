@@ -1,0 +1,42 @@
+[
+  {
+    "id": 1,
+    "title": "첫 번째 게시글입니다",
+    "content": "안녕하세요! 게시판에 오신 것을 환영합니다. 이것은 첫 번째 테스트 게시글입니다.",
+    "author": "관리자",
+    "createdAt": "2024-01-15T00:00:00.000Z"
+  },
+  {
+    "id": 2,
+    "title": "Next.js 게시판 만들기",
+    "content": "Next.js로 간단한 게시판을 만들어봤습니다. 댓글 기능과 수정 기능도 포함되어 있습니다.",
+    "author": "개발자",
+    "createdAt": "2024-01-16T00:00:00.000Z"
+  },
+  {
+    "id": 3,
+    "title": "ㅁㅈㅇㅈㅁㅇ",
+    "content": "ㅁㄴㅇㄴㅇㄴㅁㅇ",
+    "author": "111",
+    "createdAt": "2025-11-16T14:25:56.795Z",
+    "password": "5a9b68ad8cf5063dff85a908bd79ce6458dada36c016bd7435a7f97bef3a05e6"
+  },
+  {
+    "id": 4,
+    "title": "ㅁㄴㅇㄴㅁㅇ",
+    "content": "ㄴㅁㅇㅁㄴㅇㅁㄴㅇㄴㅁㅇ",
+    "author": "ㅁㄴㅇ1",
+    "createdAt": "2025-11-16T14:29:24.098Z",
+    "password": "0ffe1abd1a08215353c233d6e009613e95eec4253832a761af28ff37ac5a150c",
+    "parentId": 1
+  },
+  {
+    "id": 5,
+    "title": "ㅁㄴㅇㄴㅁㅇ",
+    "content": "ㄴㅁㅇㅇㅁㄴㅇㄴㅁㅇㄴㅁ",
+    "author": "ㅁ11",
+    "createdAt": "2025-11-16T14:29:35.343Z",
+    "password": "0ffe1abd1a08215353c233d6e009613e95eec4253832a761af28ff37ac5a150c",
+    "parentId": 1
+  }
+]

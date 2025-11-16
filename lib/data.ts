@@ -1,7 +1,18 @@
 import { Post, Comment } from '@/types';
+import fs from 'fs';
+import path from 'path';
 
-// 인메모리 데이터 저장소
-export let posts: Post[] = [
+const DATA_DIR = path.join(process.cwd(), 'data');
+const POSTS_FILE = path.join(DATA_DIR, 'posts.json');
+const COMMENTS_FILE = path.join(DATA_DIR, 'comments.json');
+
+// 데이터 디렉토리 생성
+if (!fs.existsSync(DATA_DIR)) {
+  fs.mkdirSync(DATA_DIR, { recursive: true });
+}
+
+// 초기 데이터
+const initialPosts: Post[] = [
   {
     id: 1,
     title: '첫 번째 게시글입니다',
@@ -18,7 +29,7 @@ export let posts: Post[] = [
   },
 ];
 
-export let comments: Comment[] = [
+const initialComments: Comment[] = [
   {
     id: 1,
     postId: 1,
@@ -35,13 +46,70 @@ export let comments: Comment[] = [
   },
 ];
 
-let nextPostId = 3;
-let nextCommentId = 3;
-
-export function getNextPostId() {
-  return nextPostId++;
+// 파일에서 데이터 읽기
+function readPosts(): Post[] {
+  try {
+    if (fs.existsSync(POSTS_FILE)) {
+      const data = fs.readFileSync(POSTS_FILE, 'utf-8');
+      return JSON.parse(data);
+    }
+  } catch (error) {
+    console.error('Error reading posts file:', error);
+  }
+  return initialPosts;
 }
 
-export function getNextCommentId() {
-  return nextCommentId++;
+function readComments(): Comment[] {
+  try {
+    if (fs.existsSync(COMMENTS_FILE)) {
+      const data = fs.readFileSync(COMMENTS_FILE, 'utf-8');
+      return JSON.parse(data);
+    }
+  } catch (error) {
+    console.error('Error reading comments file:', error);
+  }
+  return initialComments;
+}
+
+// 파일에 데이터 쓰기
+export function savePosts(posts: Post[]): void {
+  try {
+    fs.writeFileSync(POSTS_FILE, JSON.stringify(posts, null, 2), 'utf-8');
+  } catch (error) {
+    console.error('Error saving posts file:', error);
+  }
+}
+
+export function saveComments(comments: Comment[]): void {
+  try {
+    fs.writeFileSync(COMMENTS_FILE, JSON.stringify(comments, null, 2), 'utf-8');
+  } catch (error) {
+    console.error('Error saving comments file:', error);
+  }
+}
+
+// 초기화
+let postsData = readPosts();
+let commentsData = readComments();
+
+// 초기 파일이 없으면 생성
+if (!fs.existsSync(POSTS_FILE)) {
+  savePosts(postsData);
+}
+if (!fs.existsSync(COMMENTS_FILE)) {
+  saveComments(commentsData);
+}
+
+// Export
+export const posts = postsData;
+export const comments = commentsData;
+
+export function getNextPostId(): number {
+  const maxId = posts.length > 0 ? Math.max(...posts.map(p => p.id)) : 0;
+  return maxId + 1;
+}
+
+export function getNextCommentId(): number {
+  const maxId = comments.length > 0 ? Math.max(...comments.map(c => c.id)) : 0;
+  return maxId + 1;
 }

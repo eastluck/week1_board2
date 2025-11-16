@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { comments, getNextCommentId } from '@/lib/data';
+import { comments, getNextCommentId, saveComments } from '@/lib/data';
 
 export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams;
@@ -23,5 +23,6 @@ export async function POST(request: NextRequest) {
     createdAt: new Date().toISOString(),
   };
   comments.push(newComment);
+  saveComments(comments); // 파일에 저장
   return NextResponse.json(newComment, { status: 201 });
 }
