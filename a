@@ -1,4 +1,8 @@
 aaa
 bbb
 ccc
+<<<<<<< HEAD
 dddddd
+=======
+ffffffffffffff
+>>>>>>> af8164d (a 파일에 f추가)
