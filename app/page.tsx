@@ -2,9 +2,12 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { Post } from '@/types';
 
 export default function Home() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const [posts, setPosts] = useState<Post[]>([]);
   const [showForm, setShowForm] = useState(false);
   const [title, setTitle] = useState('');
@@ -12,9 +15,22 @@ export default function Home() {
   const [author, setAuthor] = useState('');
   const [password, setPassword] = useState('');
 
+  // 페이징 관련
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPosts, setTotalPosts] = useState(0);
+  const postsPerPage = 10;
+
+  // URL에서 페이지 번호 읽기
+  useEffect(() => {
+    const page = searchParams.get('page');
+    if (page) {
+      setCurrentPage(parseInt(page));
+    }
+  }, [searchParams]);
+
   useEffect(() => {
     fetchPosts();
-  }, []);
+  }, [currentPage]);
 
   const fetchPosts = async () => {
     const res = await fetch('/api/posts');
@@ -28,7 +44,27 @@ export default function Home() {
       replyCount: data.filter((p: Post) => p.parentId === post.id).length,
     }));
 
-    setPosts(postsWithReplyCount);
+    // 최신순 정렬
+    postsWithReplyCount.sort((a: any, b: any) =>
+      new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    );
+
+    setTotalPosts(postsWithReplyCount.length);
+
+    // 페이징 적용
+    const startIndex = (currentPage - 1) * postsPerPage;
+    const endIndex = startIndex + postsPerPage;
+    const paginatedPosts = postsWithReplyCount.slice(startIndex, endIndex);
+
+    setPosts(paginatedPosts);
+  };
+
+  const totalPages = Math.ceil(totalPosts / postsPerPage);
+
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+    router.push(`/?page=${page}`);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -45,6 +81,7 @@ export default function Home() {
     setAuthor('');
     setPassword('');
     setShowForm(false);
+    setCurrentPage(1); // 첫 페이지로 이동
     fetchPosts();
   };
 
@@ -116,13 +153,13 @@ export default function Home() {
 
       <div className="space-y-4">
         {posts.map((post: any) => (
-          <Link key={post.id} href={`/posts/${post.id}`}>
+          <Link key={post.id} href={`/posts/${post.id}?returnPage=${currentPage}`}>
             <div className="bg-white rounded-lg shadow p-6 hover:shadow-md transition-shadow cursor-pointer">
               <div className="flex justify-between items-start mb-2">
                 <h3 className="text-lg font-semibold flex-1">{post.title}</h3>
                 {post.replyCount > 0 && (
                   <span className="ml-2 px-2 py-1 bg-blue-500 text-white text-xs rounded-full">
-                    답변 {post.replyCount}
+                    댓글 {post.replyCount}
                   </span>
                 )}
               </div>
@@ -134,6 +171,73 @@ export default function Home() {
             </div>
           </Link>
         ))}
+      </div>
+
+      {/* 페이징 */}
+      {totalPages > 1 && (
+        <div className="mt-8 flex justify-center items-center gap-2">
+          <button
+            onClick={() => handlePageChange(currentPage - 1)}
+            disabled={currentPage === 1}
+            className={`px-4 py-2 rounded ${
+              currentPage === 1
+                ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                : 'bg-white text-gray-700 hover:bg-gray-100 shadow'
+            }`}
+          >
+            이전
+          </button>
+
+          <div className="flex gap-1">
+            {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => {
+              // 현재 페이지 주변만 표시 (현재 페이지 ±2)
+              if (
+                page === 1 ||
+                page === totalPages ||
+                (page >= currentPage - 2 && page <= currentPage + 2)
+              ) {
+                return (
+                  <button
+                    key={page}
+                    onClick={() => handlePageChange(page)}
+                    className={`px-4 py-2 rounded ${
+                      currentPage === page
+                        ? 'bg-blue-500 text-white font-bold'
+                        : 'bg-white text-gray-700 hover:bg-gray-100 shadow'
+                    }`}
+                  >
+                    {page}
+                  </button>
+                );
+              } else if (page === currentPage - 3 || page === currentPage + 3) {
+                return (
+                  <span key={page} className="px-2 py-2 text-gray-400">
+                    ...
+                  </span>
+                );
+              }
+              return null;
+            })}
+          </div>
+
+          <button
+            onClick={() => handlePageChange(currentPage + 1)}
+            disabled={currentPage === totalPages}
+            className={`px-4 py-2 rounded ${
+              currentPage === totalPages
+                ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                : 'bg-white text-gray-700 hover:bg-gray-100 shadow'
+            }`}
+          >
+            다음
+          </button>
+        </div>
+      )}
+
+      {/* 페이지 정보 */}
+      <div className="mt-4 text-center text-sm text-gray-600">
+        전체 {totalPosts}개 게시글 중 {((currentPage - 1) * postsPerPage) + 1}~
+        {Math.min(currentPage * postsPerPage, totalPosts)}번째 표시
       </div>
     </div>
   );

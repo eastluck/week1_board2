@@ -1,12 +1,13 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { Post, Comment } from '@/types';
 
 export default function PostDetail() {
   const params = useParams();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [post, setPost] = useState<Post | null>(null);
   const [replies, setReplies] = useState<Post[]>([]);
   const [isEditingPost, setIsEditingPost] = useState(false);
@@ -14,6 +15,10 @@ export default function PostDetail() {
   const [editedContent, setEditedContent] = useState('');
   const [editedAuthor, setEditedAuthor] = useState('');
   const [password, setPassword] = useState('');
+
+  // 게시글 삭제 관련
+  const [isDeletingPost, setIsDeletingPost] = useState(false);
+  const [deletePostPassword, setDeletePostPassword] = useState('');
 
   // 답변 작성 관련
   const [showReplyForm, setShowReplyForm] = useState(false);
@@ -28,6 +33,10 @@ export default function PostDetail() {
   const [editedReplyContent, setEditedReplyContent] = useState('');
   const [editedReplyAuthor, setEditedReplyAuthor] = useState('');
   const [editReplyPassword, setEditReplyPassword] = useState('');
+
+  // 답변 삭제 관련
+  const [deletingReplyId, setDeletingReplyId] = useState<number | null>(null);
+  const [deleteReplyPassword, setDeleteReplyPassword] = useState('');
 
   useEffect(() => {
     fetchPost();
@@ -104,22 +113,33 @@ export default function PostDetail() {
     }
   };
 
-  const handleDeleteReply = async (replyId: number) => {
-    const inputPassword = prompt('답변을 삭제하려면 비밀번호를 입력하세요:');
-    if (!inputPassword) return;
+  const handleDeleteReply = (replyId: number) => {
+    setDeletingReplyId(replyId);
+    setDeleteReplyPassword('');
+  };
+
+  const handleConfirmDeleteReply = async (e: React.FormEvent, replyId: number) => {
+    e.preventDefault();
 
     const res = await fetch(`/api/posts/${replyId}`, {
       method: 'DELETE',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ password: inputPassword }),
+      body: JSON.stringify({ password: deleteReplyPassword }),
     });
 
     if (res.ok) {
+      setDeletingReplyId(null);
+      setDeleteReplyPassword('');
       fetchReplies();
     } else {
       const error = await res.json();
       alert(error.error === 'Invalid password' ? '비밀번호가 일치하지 않습니다.' : '오류가 발생했습니다.');
     }
+  };
+
+  const handleCancelDeleteReply = () => {
+    setDeletingReplyId(null);
+    setDeleteReplyPassword('');
   };
 
   const handleCancelEditReply = () => {
@@ -166,14 +186,18 @@ export default function PostDetail() {
     setPassword('');
   };
 
-  const handleDeletePost = async () => {
-    const inputPassword = prompt('게시글을 삭제하려면 비밀번호를 입력하세요:');
-    if (!inputPassword) return;
+  const handleDeletePost = () => {
+    setIsDeletingPost(true);
+    setDeletePostPassword('');
+  };
+
+  const handleConfirmDeletePost = async (e: React.FormEvent) => {
+    e.preventDefault();
 
     const res = await fetch(`/api/posts/${params.id}`, {
       method: 'DELETE',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ password: inputPassword }),
+      body: JSON.stringify({ password: deletePostPassword }),
     });
 
     if (res.ok) {
@@ -185,6 +209,11 @@ export default function PostDetail() {
     }
   };
 
+  const handleCancelDeletePost = () => {
+    setIsDeletingPost(false);
+    setDeletePostPassword('');
+  };
+
   if (!post) {
     return <div className="text-center py-8">로딩 중...</div>;
   }
@@ -192,7 +221,10 @@ export default function PostDetail() {
   return (
     <div>
       <button
-        onClick={() => router.push('/')}
+        onClick={() => {
+          const returnPage = searchParams.get('returnPage') || '1';
+          router.push(`/?page=${returnPage}`);
+        }}
         className="mb-4 text-blue-500 hover:text-blue-700"
       >
         ← 목록으로
@@ -256,6 +288,38 @@ export default function PostDetail() {
               </button>
             </div>
           </form>
+        ) : isDeletingPost ? (
+          <form onSubmit={handleConfirmDeletePost}>
+            <h2 className="text-2xl font-bold mb-4 text-red-600">게시글 삭제</h2>
+            <p className="mb-4 text-gray-700">정말로 이 게시글을 삭제하시겠습니까?</p>
+            <div className="mb-4">
+              <label className="block text-sm font-medium mb-2">비밀번호</label>
+              <input
+                type="password"
+                value={deletePostPassword}
+                onChange={(e) => setDeletePostPassword(e.target.value)}
+                className="w-full px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-red-500"
+                placeholder="비밀번호를 입력하세요"
+                required
+                autoFocus
+              />
+            </div>
+            <div className="flex gap-2">
+              <button
+                type="submit"
+                className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600"
+              >
+                삭제 확인
+              </button>
+              <button
+                type="button"
+                onClick={handleCancelDeletePost}
+                className="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600"
+              >
+                취소
+              </button>
+            </div>
+          </form>
         ) : (
           <>
             <h2 className="text-2xl font-bold mb-4">{post.title}</h2>
@@ -285,13 +349,13 @@ export default function PostDetail() {
       <div className="bg-white rounded-lg shadow p-6">
         <div className="flex justify-between items-center mb-4">
           <h3 className="text-xl font-semibold">
-            답변 ({replies.length})
+            댓글 ({replies.length})
           </h3>
           <button
             onClick={() => setShowReplyForm(!showReplyForm)}
             className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
           >
-            {showReplyForm ? '취소' : '답변 작성'}
+            {showReplyForm ? '취소' : '댓글 작성'}
           </button>
         </div>
 
@@ -304,7 +368,7 @@ export default function PostDetail() {
                 value={replyTitle}
                 onChange={(e) => setReplyTitle(e.target.value)}
                 className="w-full px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="답변 제목"
+                placeholder="댓글 제목"
                 required
               />
             </div>
@@ -315,7 +379,7 @@ export default function PostDetail() {
                 onChange={(e) => setReplyContent(e.target.value)}
                 className="w-full px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
                 rows={5}
-                placeholder="답변 내용"
+                placeholder="댓글 내용"
                 required
               />
             </div>
@@ -336,7 +400,7 @@ export default function PostDetail() {
                 value={replyPassword}
                 onChange={(e) => setReplyPassword(e.target.value)}
                 className="w-full px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="답변 수정/삭제 시 필요합니다"
+                placeholder="댓글 수정/삭제 시 필요합니다"
                 required
               />
             </div>
@@ -344,7 +408,7 @@ export default function PostDetail() {
               type="submit"
               className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600"
             >
-              답변 등록
+              댓글 등록
             </button>
           </form>
         )}
@@ -410,6 +474,38 @@ export default function PostDetail() {
                     </button>
                   </div>
                 </form>
+              ) : deletingReplyId === reply.id ? (
+                <form onSubmit={(e) => handleConfirmDeleteReply(e, reply.id)}>
+                  <h4 className="text-lg font-semibold mb-2 text-red-600">댓글 삭제</h4>
+                  <p className="mb-3 text-gray-700">정말로 이 댓글을 삭제하시겠습니까?</p>
+                  <div className="mb-3">
+                    <label className="block text-sm font-medium mb-2">비밀번호</label>
+                    <input
+                      type="password"
+                      value={deleteReplyPassword}
+                      onChange={(e) => setDeleteReplyPassword(e.target.value)}
+                      className="w-full px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-red-500"
+                      placeholder="비밀번호를 입력하세요"
+                      required
+                      autoFocus
+                    />
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      type="submit"
+                      className="px-4 py-1 bg-red-500 text-white text-sm rounded hover:bg-red-600"
+                    >
+                      삭제 확인
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleCancelDeleteReply}
+                      className="px-4 py-1 bg-gray-500 text-white text-sm rounded hover:bg-gray-600"
+                    >
+                      취소
+                    </button>
+                  </div>
+                </form>
               ) : (
                 <>
                   <h4 className="text-lg font-semibold mb-2">{reply.title}</h4>
@@ -443,7 +539,7 @@ export default function PostDetail() {
 
           {replies.length === 0 && (
             <p className="text-gray-500 text-center py-4">
-              첫 번째 답변을 작성해보세요!
+              첫 번째 댓글을 작성해보세요!
             </p>
           )}
         </div>
