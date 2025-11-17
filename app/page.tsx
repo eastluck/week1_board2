@@ -1,11 +1,11 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, Suspense } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Post } from '@/types';
 
-export default function Home() {
+function BoardContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [posts, setPosts] = useState<Post[]>([]);
@@ -240,5 +240,13 @@ export default function Home() {
         {Math.min(currentPage * postsPerPage, totalPosts)}번째 표시
       </div>
     </div>
+  );
+}
+
+export default function Home() {
+  return (
+    <Suspense fallback={<div className="text-center py-10">로딩 중...</div>}>
+      <BoardContent />
+    </Suspense>
   );
 }
